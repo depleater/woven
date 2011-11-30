@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-import sys, os
+import sys
+import os
 from distutils.core import run_setup
 from random import choice
 import re
@@ -16,20 +17,23 @@ from fabric.main import find_fabfile
 
 import woven
 
-TEMPLATE_DIR = os.path.join(os.path.dirname(os.path.realpath(woven.__file__))
-                                ,'templates','distribution_template')
+TEMPLATE_DIR = os.path.join(
+        os.path.dirname(os.path.realpath(woven.__file__)),
+        'templates', 'distribution_template')
+
 
 def copy_helper(app_or_project, name, directory, dist, template_dir, noadmin):
     """
-    
+
     Replacement for django copy_helper
     Copies a Django project layout template into the specified distribution directory
 
     """
 
     import shutil
-    if not re.search(r'^[_a-zA-Z]\w*$', name): # If it's not a valid directory name.
-        # Provide a smart error message, depending on the error.
+    # If it's not a valid directory name...
+    if not re.search(r'^[_a-zA-Z]\w*$', name):
+        # ...provide a smart error message, depending on the error.
         if not re.search(r'^[_a-zA-Z]', name):
             message = 'make sure the name begins with a letter or underscore'
         else:
@@ -40,9 +44,9 @@ def copy_helper(app_or_project, name, directory, dist, template_dir, noadmin):
         os.mkdir(top_dir)
     except OSError, e:
         raise CommandError(e)
-        
+
     for d, subdirs, files in os.walk(template_dir):
-        relative_dir = d[len(template_dir)+1:].replace('project_name', name)
+        relative_dir = d[len(template_dir) + 1:].replace('project_name', name)
         if relative_dir:
             os.mkdir(os.path.join(top_dir, relative_dir))
         for subdir in subdirs[:]:
@@ -60,7 +64,7 @@ def copy_helper(app_or_project, name, directory, dist, template_dir, noadmin):
             if noadmin:
                 fp_new.write(fp_old.read().replace('{{ project_name }}', name))
             else:
-                fp_new.write(fp_old.read().replace('{{ project_name }}', name).replace('## ',''))
+                fp_new.write(fp_old.read().replace('{{ project_name }}', name).replace('## ', ''))
             fp_old.close()
             fp_new.close()
             try:
@@ -86,7 +90,7 @@ def start_distribution(project_name, template_dir, dist, noadmin):
         raise CommandError("%r conflicts with the name of an existing Python module and cannot be used as a project name. Please try another name." % project_name)
     #woven override
     copy_helper('project', project_name, directory, dist, template_dir, noadmin)
-    
+
     #Create a random SECRET_KEY hash, and put it in the main settings.
     main_settings_file = os.path.join(directory, dist, project_name, 'settings.py')
     settings_contents = open(main_settings_file, 'r').read()
@@ -95,13 +99,13 @@ def start_distribution(project_name, template_dir, dist, noadmin):
     settings_contents = re.sub(r"(?<=SECRET_KEY = ')'", secret_key + "'", settings_contents)
     fp.write(settings_contents)
     fp.close()
-    
+
     #import settings and create start directories
     sys.path.append(os.path.join(directory, dist))
 
-    s = import_module('.'.join([project_name,'settings']))
+    s = import_module('.'.join([project_name, 'settings']))
     sys.path.pop()
-    if s.DATABASES['default']['ENGINE']=='django.db.backends.sqlite3':
+    if s.DATABASES['default']['ENGINE'] == 'django.db.backends.sqlite3':
         if s.DATABASES['default']['NAME'] and not os.path.exists(s.DATABASES['default']['NAME']):
             os.mkdir(os.path.dirname(s.DATABASES['default']['NAME']))
     if s.STATIC_ROOT and os.path.isabs(s.STATIC_ROOT) and not os.path.exists(s.STATIC_ROOT):
@@ -112,7 +116,7 @@ def start_distribution(project_name, template_dir, dist, noadmin):
         for t in s.TEMPLATE_DIRS:
             if not os.path.exists(t) and os.path.sep in t:
                 os.mkdir(t)
-    
+
 
 if __name__ == "__main__":
     #Inject woven into the settings only if it is a woven command
@@ -124,19 +128,19 @@ if __name__ == "__main__":
     for arg in sys.argv:
         if '--settings' in arg:
             settings_mod = arg.split('=')[1].strip()
-        elif arg in ['activate','deploy','startsites','setupnode','node','bundle','patch', 'validate']:
+        elif arg in ['activate', 'deploy', 'startsites', 'setupnode', 'node', 'bundle', 'patch', 'validate']:
             inject = True
         elif arg == 'startproject':
             #call woven startproject in place of django startproject
             startproject = True
             inject = True
             parser = optparse.OptionParser(usage="usage: %prog startproject [project_name] [username@domain] [options]\n\n"
-                "project_name is the name of your django project\n"                               
+                "project_name is the name of your django project\n"
                 "username@domain is an optional email address to setup a superuser")
             parser.add_option('-t', '--template-dir', dest='src_dir',
                         help='project template directory to use',
                         default=TEMPLATE_DIR)
-            parser.add_option('-d','--dist', dest='dist_name',
+            parser.add_option('-d', '--dist', dest='dist_name',
                         help="alternative distribution name",
                         default='')
             parser.add_option('--noadmin',
@@ -163,12 +167,12 @@ if __name__ == "__main__":
             except IndexError:
                 email = ''
 
-            start_distribution(project_name,options.src_dir, dist, noadmin = options.noadmin)
+            start_distribution(project_name, options.src_dir, dist, noadmin=options.noadmin)
 
     #get the name of the settings from setup.py if DJANGO_SETTINGS_MODULE is not set
     if not os.environ.get('DJANGO_SETTINGS_MODULE') and not settings_mod:
         if startproject:
-            os.chdir(os.path.join(orig_cwd,dist))
+            os.chdir(os.path.join(orig_cwd, dist))
         elif not 'setup.py' in os.listdir(os.getcwd()):
             #switch the working directory to the distribution root where setup.py is
             with settings(fabfile='setup.py'):
@@ -178,14 +182,13 @@ if __name__ == "__main__":
                 sys.exit(1)
             local_working_dir = os.path.split(env.setup_path)[0]
             os.chdir(local_working_dir)
-        
+
         woven_admin = sys.argv[0]
-        setup = run_setup('setup.py',stop_after="init")
-        settings_mod = '.'.join([setup.packages[0],'settings'])
-        os.environ['DJANGO_SETTINGS_MODULE'] =  settings_mod
+        setup = run_setup('setup.py', stop_after="init")
+        settings_mod = '.'.join([setup.packages[0], 'settings'])
+        os.environ['DJANGO_SETTINGS_MODULE'] = settings_mod
         sys.argv.remove('setup.py')
         sys.argv.insert(0, woven_admin)
-
 
     if inject:
         if settings_mod:
@@ -193,7 +196,7 @@ if __name__ == "__main__":
 
         from django.conf import settings
         settings.INSTALLED_APPS += ('woven',)
-        
+
         #switch to the settings module directory
         proj = settings_mod.split('.')[0]
         proj_mod = import_module(proj)
@@ -202,35 +205,33 @@ if __name__ == "__main__":
         moddir = os.path.dirname(proj_mod.__file__)
         os.chdir(moddir)
 
-    
     if startproject:
         if not options.nosyncdb:
-            call_command('syncdb',interactive=False)
+            call_command('syncdb', interactive=False)
             if 'django.contrib.auth' in settings.INSTALLED_APPS:
                 if '@' in email:
                     u = email.split('@')[0]
                 else:
                     u = project_name
-                    email = '%s@example.com'% project_name
-                print "\nA superuser will be created with '%s' as username and password"% u
+                    email = '%s@example.com' % project_name
+                print "\nA superuser will be created with '%s' as username and password" % u
                 print "Alternatively you can run the standard createsuperuser command separately"
-                csuper = confirm('Would you like to create a superuser now?',default=True)
+                csuper = confirm('Would you like to create a superuser now?', default=True)
                 if csuper:
                     from django.contrib.auth.models import User
-                    
+
                     User.objects.create_superuser(username=u, email=email, password=u)
                     print "\nA default superuser was created:"
                     print "Username:", u
                     print "Password:", u
                     print "Email:", email
-                    print "Change your password with 'woven-admin.py changepassword %s'"% u
+                    print "Change your password with 'woven-admin.py changepassword %s'" % u
                 else:
                     print "\nNo superuser created. "
                     print "Run 'woven-admin.py createsuperuser' to create one"
-        
+
     #run command as per django-admin.py
     else:
         #switch back to the original directory just in case some command needs it
         os.chdir(orig_cwd)
         execute_from_command_line()
-

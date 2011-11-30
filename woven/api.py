@@ -29,6 +29,7 @@ from woven.virtualenv import mkvirtualenv, rmvirtualenv, pip_install_requirement
 from woven.webservers import deploy_wsgi, deploy_webconf, start_webserver, stop_webserver, reload_webservers
 from woven.webservers import webserver_list
 
+
 def deploy(overwrite=False):
     """
     deploy a versioned project on the host
@@ -36,10 +37,11 @@ def deploy(overwrite=False):
     check_settings()
     if overwrite:
         rmvirtualenv()
-    deploy_funcs = [deploy_project,deploy_templates, deploy_static, deploy_media,  deploy_webconf, deploy_wsgi]
+    deploy_funcs = [deploy_project, deploy_templates, deploy_static, deploy_media,  deploy_webconf, deploy_wsgi]
     if not patch_project() or overwrite:
-        deploy_funcs = [deploy_db,mkvirtualenv,pip_install_requirements] + deploy_funcs
-    for func in deploy_funcs: func()
+        deploy_funcs = [deploy_db, mkvirtualenv, pip_install_requirements] + deploy_funcs
+    for func in deploy_funcs:
+        func()
 
 
 def setupnode(overwrite=False):
@@ -51,11 +53,12 @@ def setupnode(overwrite=False):
         if not skip_disable_root():
             disable_root()
         port_changed = change_ssh_port()
-    #avoid trying to take shortcuts if setupnode did not finish 
+    #avoid trying to take shortcuts if setupnode did not finish
     #on previous execution
     if server_state('setupnode-incomplete'):
-        env.overwrite=True
-    else: set_server_state('setupnode-incomplete')
+        env.overwrite = True
+    else:
+        set_server_state('setupnode-incomplete')
     upload_ssh_key()
     restrict_ssh()
     add_repositories()
@@ -68,10 +71,8 @@ def setupnode(overwrite=False):
     post_install_package()
     setup_ufw_rules()
     set_timezone()
-    set_server_state('setupnode-incomplete',delete=True)
+    set_server_state('setupnode-incomplete', delete=True)
     #stop and start webservers - and reload nginx
     for s in webserver_list():
         stop_webserver(s)
         start_webserver(s)
-
-
